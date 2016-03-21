@@ -42,13 +42,22 @@ function Import-Artifact()
     PROCESS
     {
         $fileName = Split-Path $packagePath -leaf
-        $fileName = Get-EncodedPathPart($fileName) 
 
         Add-Type -AssemblyName System.Net.Http
 
         $networkCredential = New-Object -TypeName System.Net.NetworkCredential -ArgumentList @($Credential.UserName, $Credential.Password)
 		$httpClientHandler = New-Object -TypeName System.Net.Http.HttpClientHandler
 		$httpClientHandler.Credentials = $networkCredential
+
+        $packageFileStream = New-Object -TypeName System.IO.FileStream -ArgumentList @($PackagePath, [System.IO.FileMode]::Open)
+        
+		$contentDispositionHeaderValue = New-Object -TypeName  System.Net.Http.Headers.ContentDispositionHeaderValue -ArgumentList @("form-data")
+	    $contentDispositionHeaderValue.Name = "file"
+		$contentDispositionHeaderValue.FileName = $fileName
+
+        $streamContent = New-Object -TypeName System.Net.Http.StreamContent -ArgumentList @($packageFileStream)
+        $streamContent.Headers.ContentDisposition = $contentDispositionHeaderValue
+        $streamContent.Headers.ContentType = New-Object -TypeName System.Net.Http.Headers.MediaTypeHeaderValue -ArgumentList @("application/octet-stream")
 
         $repoContent = CreateDataContent "r" $Repository
         $groupContent = CreateDataContent "g" $Group
@@ -62,69 +71,13 @@ function Import-Artifact()
         $content.Add($artifactContent)
         $content.Add($versionContent)
         $content.Add($packagingContent)
-
-
-    }
-    END
-    {
-
-    }
-}
-
-
-
-function Send-Package()
-{
-    [CmdletBinding()]
-    param
-    (
-        [string][parameter(Mandatory = $true, ValueFromPipeline = $true)][ValidateNotNullOrEmpty()]$packagePath,
-        [string][parameter(Mandatory = $true)][ValidateNotNullOrEmpty()]$EndpointUrl,
-        [System.Management.Automation.PSCredential][parameter(Mandatory = $true)]$Credential
-    )
-    BEGIN
-    {
-        Write-Verbose "packagePath = $packagePath"
-        Write-Verbose "XldServerUrl = $EndpointUrl"
-        Write-Verbose "XldServerCredentials Username = $($Credential.UserName)"
-    }
-    PROCESS
-    {
-        if (-not (Test-Path $packagePath))
-        {
-            $errorMessage = ("Package file {0} missing or unable to read." -f $packagePath)
-            $exception =  New-Object System.Exception $errorMessage
-			$errorRecord = New-Object System.Management.Automation.ErrorRecord $exception, 'XLDPkgUpload', ([System.Management.Automation.ErrorCategory]::InvalidArgument), $packagePath
-			$PSCmdlet.ThrowTerminatingError($errorRecord)
-        }
-
-        $fileName = Split-Path $packagePath -leaf
-        $fileName = Get-EncodedPathPart($fileName) 
-
-        Add-Type -AssemblyName System.Net.Http
-
-		$networkCredential = New-Object -TypeName System.Net.NetworkCredential -ArgumentList @($Credential.UserName, $Credential.Password)
-		$httpClientHandler = New-Object -TypeName System.Net.Http.HttpClientHandler
-		$httpClientHandler.Credentials = $networkCredential
+        $content.Add($streamContent)
 
         $httpClient = New-Object -TypeName System.Net.Http.Httpclient -ArgumentList @($httpClientHandler)
 
-        $packageFileStream = New-Object -TypeName System.IO.FileStream -ArgumentList @($packagePath, [System.IO.FileMode]::Open)
-        
-		$contentDispositionHeaderValue = New-Object -TypeName  System.Net.Http.Headers.ContentDispositionHeaderValue -ArgumentList @("form-data")
-	    $contentDispositionHeaderValue.Name = "fileData"
-		$contentDispositionHeaderValue.FileName = $fileName
-
-        $streamContent = New-Object -TypeName System.Net.Http.StreamContent -ArgumentList @($packageFileStream)
-        $streamContent.Headers.ContentDisposition = $contentDispositionHeaderValue
-        $streamContent.Headers.ContentType = New-Object -TypeName System.Net.Http.Headers.MediaTypeHeaderValue -ArgumentList @("application/octet-stream")
-        
-        $content = New-Object -TypeName System.Net.Http.MultipartFormDataContent
-        $content.Add($streamContent)
-
         try
         {
-			$response = $httpClient.PostAsync("$EndpointUrl/package/upload/$fileName", $content).Result
+			$response = $httpClient.PostAsync("$EndpointUrl/service/local/artifact/maven/content", $content).Result
 
 			if (!$response.IsSuccessStatusCode)
 			{
@@ -134,9 +87,7 @@ function Send-Package()
 				throw [System.Net.Http.HttpRequestException] $errorMessage
 			}
 
-			$responseBody = [xml]$response.Content.ReadAsStringAsync().Result
-
-            return $responseBody.'udm.DeploymentPackage'.id
+			return $response.Content.ReadAsStringAsync().Result
         }
         catch [Exception]
         {
@@ -155,5 +106,12 @@ function Send-Package()
             }
         }
     }
-    END { }
+    END
+    {
+
+    }
 }
+
+$server = "http://nexus.eu.rabodev.com"
+$credential = Get-Credential
+Import-Artifact $server "maven" "com.test" "project" "2.2" "jar" "C:\Users\majcicam\Downloads\curl-7.45.0\AMD64\junit-4.12.jar" $credential

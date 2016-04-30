@@ -1,0 +1,46 @@
+{
+  "id": "56999880-0aaf-11e6-ab58-c9e92e1e3b16",
+  "name": "Nexus",
+  "friendlyName": "SonatType Nexus",
+  "description": "Uploads artifactes to Nexus Maven Repository",
+  "author": "Mario Majcica",
+  "helpMarkDown": "Replace with markdown to show in help",
+  "category": "Utility",
+  "visibility": [
+    "Build",
+    "Release"
+  ],
+  "demands": [],
+  "version": {
+    "Major": "0",
+    "Minor": "1",
+    "Patch": "0"
+  },
+  "minimumAgentVersion": "1.83.0",
+  "instanceNameFormat": "Nexus $(message)",
+  "inputs": [
+    {
+      "name": "cwd",
+      "type": "filePath",
+      "label": "Working Directory",
+      "defaultValue": "",
+      "required": false,
+      "helpMarkDown": "Current working directory when Nexus is run."
+    },
+    {
+      "name": "msg",
+      "type": "string",
+      "label": "Message",
+      "defaultValue": "Hello World",
+      "required": true,
+      "helpMarkDown": "Message to echo out"
+    }
+  ],
+  "execution": {
+    "PowerShell": {
+      "target": "$(currentDirectory)\\task.ps1",
+      "argumentFormat": "",
+      "workingDirectory": "$(currentDirectory)"
+    }
+  }
+}

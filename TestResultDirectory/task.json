@@ -1,0 +1,29 @@
+{
+  "id": "c5d25fd0-1cf6-11e6-9ea2-4b8568e200c7",
+  "name": "TestResultDirectory",
+  "friendlyName": "Test TestResult Directory",
+  "description": "Test TestResult Directory variable",
+  "author": "Mario Majcica",
+  "helpMarkDown": "Replace with markdown to show in help",
+  "category": "Utility",
+  "visibility": [
+    "Build",
+    "Release"
+  ],
+  "demands": [],
+  "version": {
+    "Major": "0",
+    "Minor": "1",
+    "Patch": "0"
+  },
+  "minimumAgentVersion": "1.83.0",
+  "instanceNameFormat": "TestResultDirectory value print",
+  "inputs": [],
+  "execution": {
+    "PowerShell": {
+      "target": "$(currentDirectory)\\sample.ps1",
+      "argumentFormat": "",
+      "workingDirectory": "$(currentDirectory)"
+    }
+  }
+}
